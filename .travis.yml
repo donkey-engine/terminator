@@ -1,0 +1,28 @@
+__rust_base: &rust_base
+  language: rust
+  rust:
+    - 'stable'
+
+
+stages:
+  - compile
+  - test
+  - deploy
+
+
+matrix:
+  include:
+
+    # COMPILE
+
+    - name: 'compile'
+      stage: compile
+      <<: *rust_base
+      script:
+        - cargo build --verbose
+
+    - name: 'test'
+      stage: test
+      <<: *rust_base
+      script:
+        - cargo test --verbose .
