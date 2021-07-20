@@ -6,6 +6,7 @@ __rust_base: &rust_base
 
 stages:
   - compile
+  - lint
   - test
   - deploy
 
@@ -20,6 +21,17 @@ matrix:
       <<: *rust_base
       script:
         - cargo build --verbose
+
+    # LINT
+    - name: 'lint'
+      stage: lint
+      <<: *rust_base
+      before_script:
+        - rustup component add clippy
+      script:
+        - cargo clippy --all-targets --all-features -- -D warnings
+
+    # TEST
 
     - name: 'test'
       stage: test
