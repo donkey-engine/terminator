@@ -1,7 +1,7 @@
 use actix::Addr;
 use actix_web::{web, HttpRequest, Responder};
 use serde::{Serialize, Deserialize};
-use crate::storage::{ServerStorate, NewSubscriber};
+use crate::storage::{ServerStorage, NewSubscriber};
 
 #[derive(Serialize)]
 struct SubscribeResponse {
@@ -16,7 +16,7 @@ pub struct SubscribeBody {
 
 pub async fn subscribe_route(
     _request: HttpRequest,
-    server_storage: web::Data<Addr<ServerStorate>>,
+    server_storage: web::Data<Addr<ServerStorage>>,
     info: web::Json<SubscribeBody>,
 ) -> impl Responder {
     match server_storage.send(NewSubscriber {
