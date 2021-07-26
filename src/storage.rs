@@ -1,9 +1,8 @@
-// use std::sync::{Arc, Mutex};
 use actix::{Actor, Context, Handler, Message, MessageResult, Supervised, SystemService};
 
 #[derive(Clone)]
 pub struct ServerSubscriber {
-    server_id: usize,
+    pub server_id: usize,
 }
 
 #[derive(Message)]
