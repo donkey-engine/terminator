@@ -1,7 +1,7 @@
+use crate::storage::{NewSubscriber, ServerStorage};
 use actix::Addr;
 use actix_web::{web, HttpRequest, Responder};
-use serde::{Serialize, Deserialize};
-use crate::storage::{ServerStorage, NewSubscriber};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 struct SubscribeResponse {
@@ -19,9 +19,12 @@ pub async fn subscribe_route(
     server_storage: web::Data<Addr<ServerStorage>>,
     info: web::Json<SubscribeBody>,
 ) -> impl Responder {
-    match server_storage.send(NewSubscriber {
-        server_id: info.server_id,
-    }).await {
+    match server_storage
+        .send(NewSubscriber {
+            server_id: info.server_id,
+        })
+        .await
+    {
         Ok(_) => web::Json(SubscribeResponse {
             status: "ok".to_string(),
             detail: None,
