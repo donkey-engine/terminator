@@ -29,7 +29,7 @@ matrix:
       before_script:
         - rustup component add clippy
       script:
-        - echo "TODO choose lint" # OLD: cargo clippy --all-targets --all-features -- -D warnings
+        - cargo clippy --all-targets --all-features -- -D warnings
 
     # TEST
     - name: 'test'
