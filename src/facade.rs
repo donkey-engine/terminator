@@ -75,18 +75,16 @@ impl ServerFacade {
             let server_url = server_data.get("url").unwrap();
             let server_password = server_data.get("password").unwrap();
 
-            let mut rcon_client = RCONClient::new(server_url.clone()).map_err(|_err| {
-                // FIXME реализовать Display или Debug для RCONError
-                error!("Cannot create RCON client");
-                TerminatorErrors::RCONError("Cannot create RCON client".to_string())
+            let mut rcon_client = RCONClient::new(server_url.clone()).map_err(|err| {
+                error!("Cannot create RCON client: {}", err);
+                TerminatorErrors::RCONError(format!("Cannot create RCON client: {}", err))
             })?;
 
             let auth_result = rcon_client
                 .auth(AuthRequest::new(server_password.clone()))
-                .map_err(|_err| {
-                    // FIXME реализовать Display или Debug для RCONError
-                    error!("Cannot auth with RCON");
-                    TerminatorErrors::RCONError("Cannot auth with RCON".to_string())
+                .map_err(|err| {
+                    error!("Cannot auth with RCON: {}", err);
+                    TerminatorErrors::RCONError(format!("Cannot auth with RCON: {}", err))
                 })?;
 
             if !auth_result.is_success() {
@@ -107,15 +105,10 @@ impl ServerFacade {
         let rcon_data = self.rcon_connections.get_mut(&server_id).unwrap();
         let rcon_client = &mut rcon_data.client;
         let rcon_response = &rcon_client
-            .execute(RCONRequest {
-                id: server_id,
-                request_type: 2,
-                body: command,
-            })
-            .map_err(|_err| {
-                // FIXME реализовать Display или Debug для RCONError
-                error!("RCON command execute error");
-                TerminatorErrors::RCONError("RCON command execute error".to_string())
+            .execute(RCONRequest::new(command))
+            .map_err(|err| {
+                error!("RCON command execute error: {}", err);
+                TerminatorErrors::RCONError(format!("RCON command execute error: {}", err))
             })?;
 
         Ok(rcon_response.body.clone())
