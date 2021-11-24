@@ -105,11 +105,7 @@ impl ServerFacade {
         let rcon_data = self.rcon_connections.get_mut(&server_id).unwrap();
         let rcon_client = &mut rcon_data.client;
         let rcon_response = &rcon_client
-            .execute(RCONRequest {
-                id: server_id,
-                request_type: 2,
-                body: command,
-            })
+            .execute(RCONRequest::new(command))
             .map_err(|err| {
                 error!("RCON command execute error: {}", err);
                 TerminatorErrors::RCONError(format!("RCON command execute error: {}", err))
