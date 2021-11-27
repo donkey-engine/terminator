@@ -1,6 +1,6 @@
 use crate::errors::TerminatorErrors;
 use log::error;
-use rcon::{AuthRequest, RCONClient, RCONRequest};
+use rcon::{AuthRequest, RCONClient, RCONConfig, RCONRequest};
 use redis::aio::ConnectionManager;
 use redis::AsyncCommands;
 use std::collections::HashMap;
@@ -75,7 +75,11 @@ impl ServerFacade {
             let server_url = server_data.get("url").unwrap();
             let server_password = server_data.get("password").unwrap();
 
-            let mut rcon_client = RCONClient::new(server_url.clone()).map_err(|err| {
+            let mut rcon_client = RCONClient::new(RCONConfig {
+                url: server_url.clone(),
+                ..Default::default()
+            })
+            .map_err(|err| {
                 error!("Cannot create RCON client: {}", err);
                 TerminatorErrors::RCONError(format!("Cannot create RCON client: {}", err))
             })?;
