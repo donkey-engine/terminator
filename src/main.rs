@@ -6,9 +6,10 @@ use actix_web::{web, App, HttpServer};
 use log::LevelFilter;
 use std::sync::Mutex;
 use terminator::errors::TerminatorErrors;
-use terminator::facade::{RedisConfig, ServerFacade};
+use terminator::facade::ServerFacade;
 use terminator::handlers::execute::execute_route;
 use terminator::handlers::subscribe::subscribe_route;
+use terminator::storage::{RedisConfig, RedisStorage};
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -22,13 +23,14 @@ async fn main() -> std::io::Result<()> {
             .route("/subscribe", web::post().to(subscribe_route))
             .route("/execute", web::post().to(execute_route))
             .data_factory(|| async {
-                let redis_config = RedisConfig {
+                let redis_storage = RedisStorage::new(RedisConfig {
                     host: "0.0.0.0".to_string(),
                     port: 6379,
-                };
-                Ok::<Mutex<ServerFacade>, TerminatorErrors>(Mutex::new(
-                    ServerFacade::init(redis_config).await?,
-                ))
+                })
+                .await?;
+                Ok::<Mutex<ServerFacade>, TerminatorErrors>(Mutex::new(ServerFacade::init(
+                    redis_storage,
+                )))
             })
     })
     .bind(("127.0.0.1", 8585))?

@@ -1,16 +1,8 @@
 use crate::errors::TerminatorErrors;
+use crate::storage::RedisStorage;
 use log::error;
 use rcon::{AuthRequest, RCONClient, RCONConfig, RCONRequest};
-use redis::aio::ConnectionManager;
-use redis::AsyncCommands;
 use std::collections::HashMap;
-
-const REDIS_SERVER_PREFIX: &str = "terminator:servers";
-
-pub struct RedisConfig {
-    pub host: String,
-    pub port: u32,
-}
 
 struct RCONData {
     client: RCONClient,
@@ -18,32 +10,15 @@ struct RCONData {
 
 pub struct ServerFacade {
     rcon_connections: HashMap<usize, RCONData>,
-    redis: ConnectionManager,
+    storage: RedisStorage,
 }
 
 impl ServerFacade {
-    pub async fn init(redis_config: RedisConfig) -> Result<Self, TerminatorErrors> {
-        let redis_client = redis::Client::open(format!(
-            "redis://{}:{}",
-            redis_config.host, redis_config.port
-        ))
-        .map_err(|err| {
-            error!("Cannot init redis client: {}", err);
-            TerminatorErrors::RedisError(format!("Cannot init redis client: {}", err))
-        })?;
-        let redis_connection =
-            redis_client
-                .get_tokio_connection_manager()
-                .await
-                .map_err(|err| {
-                    error!("Cannot create redis connection: {}", err);
-                    TerminatorErrors::RedisError(format!("Cannot init redis client: {}", err))
-                })?;
-
-        Ok(Self {
+    pub fn init(storage: RedisStorage) -> Self {
+        Self {
             rcon_connections: HashMap::new(),
-            redis: redis_connection,
-        })
+            storage,
+        }
     }
 
     pub async fn execute(
@@ -53,30 +28,17 @@ impl ServerFacade {
     ) -> Result<String, TerminatorErrors> {
         if let std::collections::hash_map::Entry::Vacant(_) = self.rcon_connections.entry(server_id)
         {
-            // Restore data from redis and reconnect
-            let server_data: HashMap<String, String> = self
-                .redis
-                .hgetall(format!("{}:{}", REDIS_SERVER_PREFIX, server_id))
-                .await
-                .map_err(|err| {
-                    error!("Cannot check key {}", err);
-                    TerminatorErrors::RedisError(format!("Cannot check key {}", err))
-                })?;
-
-            if server_data.is_empty() {
+            // Restore data from storage and reconnect
+            let server_data = self.storage.get(server_id).await?.ok_or_else(|| {
                 error!("There is no subscriber with ID: {}", server_id);
-                return Err(TerminatorErrors::SubscribeError(format!(
+                TerminatorErrors::SubscribeError(format!(
                     "There is no subscriber with ID: {}",
                     server_id
-                )));
-            }
-
-            // FIXME исправить unwrap на обработку ошибок
-            let server_url = server_data.get("url").unwrap();
-            let server_password = server_data.get("password").unwrap();
+                ))
+            })?;
 
             let mut rcon_client = RCONClient::new(RCONConfig {
-                url: server_url.clone(),
+                url: server_data.url.clone(),
                 ..Default::default()
             })
             .map_err(|err| {
@@ -85,7 +47,7 @@ impl ServerFacade {
             })?;
 
             let auth_result = rcon_client
-                .auth(AuthRequest::new(server_password.clone()))
+                .auth(AuthRequest::new(server_data.password))
                 .map_err(|err| {
                     error!("Cannot auth with RCON: {}", err);
                     TerminatorErrors::RCONError(format!("Cannot auth with RCON: {}", err))
