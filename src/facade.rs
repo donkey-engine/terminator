@@ -1,7 +1,7 @@
 use crate::errors::TerminatorErrors;
 use crate::storage::RedisStorage;
 use log::error;
-use rcon::{AuthRequest, RCONClient, RCONRequest};
+use rcon::{AuthRequest, RCONClient, RCONConfig, RCONRequest};
 use std::collections::HashMap;
 
 struct RCONData {
@@ -37,7 +37,11 @@ impl ServerFacade {
                 ))
             })?;
 
-            let mut rcon_client = RCONClient::new(server_data.url.clone()).map_err(|err| {
+            let mut rcon_client = RCONClient::new(RCONConfig {
+                url: server_data.url.clone(),
+                ..Default::default()
+            })
+            .map_err(|err| {
                 error!("Cannot create RCON client: {}", err);
                 TerminatorErrors::RCONError(format!("Cannot create RCON client: {}", err))
             })?;
